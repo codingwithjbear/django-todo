@@ -3,6 +3,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.contrib.auth import login, logout, authenticate
+from .forms import TodoForm
+from .models import Todo
 
 # Create your views here.
 def signupuser(request):
@@ -48,7 +50,23 @@ def loginuser(request):
 
 
 def currenttodos(request):
-    return render(request, 'todo/currenttodos.html')
+    todos = Todo.objects.filter(user=request.user, completed__isnull =True) # if completed dont show "completed__isnull"
+    return render(request, 'todo/currenttodos.html', {'todos':todos})
+
+def createtodo(request):
+    if request.method == 'GET':
+       return render(request,'todo/createtodo.html', {'form':TodoForm()})
+    else: #someone posted information to the view "this is the post condition" so we need to get the info from the post requst and place it into the form 
+      try:
+        form = TodoForm(request.POST)
+        newtodo = form.save(commit=False) # create a new todo object but dont save it into the database yet "commit false does that"
+        newtodo.user = request.user
+        newtodo.save()
+        return redirect('currenttodos')
+      except ValueError:
+        return render(request, 'todo/createtodo.html', {'form':TodoForm(), 'error':'Title too long please keep it under 100 characters'})
+
+
 
 def home(request):
     return render(request,'todo/home.html')
